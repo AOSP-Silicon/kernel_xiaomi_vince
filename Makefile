@@ -696,14 +696,25 @@ include arch/$(SRCARCH)/Makefile
 
 ifdef CONFIG_LLVM_POLLY
 ifeq ($(shell /bin/sh -c "$(CC) --version|grep Android"),)
-KBUILD_CFLAGS	+= -mllvm -polly \
+OPT_FLAGS	:= -mllvm -polly \
 		   -mllvm -polly-run-dce \
 		   -mllvm -polly-run-inliner \
-		   -mllvm -polly-opt-fusion=max \
 		   -mllvm -polly-ast-use-context \
 		   -mllvm -polly-detect-keep-going \
 		   -mllvm -polly-vectorizer=stripmine \
 		   -mllvm -polly-invariant-load-hoisting
+
+ifeq ($(call clang-ifversion, -ge, 1400, y), y)
+OPT_FLAGS       += -mllvm -polly-reschedule=1 \
+		   -mllvm -polly-loopfusion-greedy \
+		   -mllvm -polly-postopts=1
+else
+OPT_FLAGS       += -mllvm -polly-opt-fusion=max
+endif
+
+KBUILD_CFLAGS += $(OPT_FLAGS)
+KBUILD_AFLAGS += $(OPT_FLAGS)
+KBUILD_LDFLAGS += $(OPT_FLAGS)
 endif
 endif
 
